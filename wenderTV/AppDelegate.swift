@@ -26,54 +26,57 @@ import TVMLKit
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
-  var window: UIWindow?
-  var appController: TVApplicationController?
+    var window: UIWindow?
+    var appController: TVApplicationController?
 
-  func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey : Any]? = nil) -> Bool {
-    window = UIWindow(frame: UIScreen.main.bounds)
-    
-    let appControllerContext = TVApplicationControllerContext()
-    appControllerContext.launchOptions = [
-      "initialJSDependencies" : initialJSDependencies()
-    ]
-    
-    let javascriptURL = Bundle.main.url(forResource: "main",
-      withExtension: "js")
-    appControllerContext.javaScriptApplicationURL = javascriptURL!
-    
-    appController = TVApplicationController(
-      context: appControllerContext, window: window,
-      delegate: self)
-    
-    
-    return true
-  }
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]? = nil) -> Bool {
+        window = UIWindow(frame: UIScreen.main.bounds)
+
+        let appControllerContext = TVApplicationControllerContext()
+        appControllerContext.launchOptions = [
+                "initialJSDependencies": initialJSDependencies()
+        ]
+
+        let javascriptURL = Bundle.main.url(forResource: "main",
+                withExtension: "js")
+        appControllerContext.javaScriptApplicationURL = javascriptURL!
+
+        appController = TVApplicationController(
+                context: appControllerContext, window: window,
+                delegate: self)
+
+
+        return true
+    }
 }
 
 extension AppDelegate {
-  fileprivate func initialJSDependencies() -> [String] {
-    return [
-        "mustache.min",
-        "ResourceLoader",
-        "DataController",
-        "Presenter",
-        "EventHandler",
-        "SearchHandler"
-      ].flatMap {
-      let url = Bundle.main.url(forResource: $0, withExtension: "js")
-      return url?.absoluteString
+    fileprivate func initialJSDependencies() -> [String] {
+        return [
+                "mustache.min",
+                "ResourceLoader",
+                "DataController",
+                "Presenter",
+                "EventHandler",
+                "SearchHandler"
+        ].flatMap {
+            let url = Bundle.main.url(forResource: $0, withExtension: "js")
+            return url?.absoluteString
+        }
     }
-  }
 }
 
 
-extension AppDelegate : TVApplicationControllerDelegate {
-  func appController(_ appController: TVApplicationController,
-    evaluateAppJavaScriptIn jsContext: JSContext) {
-      
-      jsContext.setObject(ResourceLoader.self,
-        forKeyedSubscript: "NativeResourceLoader" as NSString)
-      
-  }
+extension AppDelegate: TVApplicationControllerDelegate {
+    func appController(_ appController: TVApplicationController,
+                       evaluateAppJavaScriptIn jsContext: JSContext) {
+
+        jsContext.setObject(ResourceLoader.self,
+                forKeyedSubscript: "NativeResourceLoader" as NSString)
+
+        let videoPresenterClosure = chromaKeyVideoPresenter(appController)
+        let castedClosure = unsafeBitCast(videoPresenterClosure, to: AnyObject.self)
+        jsContext.setObject(castedClosure, forKeyedSubscript: "presentChromaKeyVideo" as NSString)
+    }
 }
 

@@ -22,120 +22,120 @@
 
 class Presenter {
 
-  constructor(resourceLoader, searchHandler) {
-    this._resourceLoader = resourceLoader;
-    this._searchHandler = searchHandler;
-  }
-
-  present(template, data, presentation, eventHandler, sender) {
-    if (presentation === 'dismiss') {
-      navigationDocument.dismissModal();
-      return;
-    } else if (presentation === 'playVideo') {
-      this._playVideo(data, eventHandler);
-      return;
-    } else if (presentation === 'playChromaKeyVideo') {
-      this._playChromaKeyVideo(data);
-      return;
+    constructor(resourceLoader, searchHandler) {
+        this._resourceLoader = resourceLoader;
+        this._searchHandler = searchHandler;
     }
 
-    var enhancedData = this._enchancedDataForTemplate(data, template);
-    var doc = this._resourceLoader.getDocument(template, enhancedData);
+    present(template, data, presentation, eventHandler, sender) {
+        if (presentation === 'dismiss') {
+            navigationDocument.dismissModal();
+            return;
+        } else if (presentation === 'playVideo') {
+            this._playVideo(data, eventHandler);
+            return;
+        } else if (presentation === 'playChromaKeyVideo') {
+            this._playChromaKeyVideo(data);
+            return;
+        }
 
-    if(eventHandler) {
-      eventHandler.addEventHandlersToDoc(doc);
+        var enhancedData = this._enchancedDataForTemplate(data, template);
+        var doc = this._resourceLoader.getDocument(template, enhancedData);
+
+        if (eventHandler) {
+            eventHandler.addEventHandlersToDoc(doc);
+        }
+
+        if (template === 'search.tvml') {
+            this._searchHandler.registerDocForSearch(doc);
+        }
+
+        switch (presentation) {
+            case 'modal':
+                navigationDocument.presentModal(doc);
+                break;
+            case 'push':
+                navigationDocument.pushDocument(doc);
+                break;
+            case 'menuBar':
+                this._presentMenuBarItem(doc, sender);
+                break;
+        }
+
     }
 
-    if(template === 'search.tvml') {
-      this._searchHandler.registerDocForSearch(doc);
+    _playVideo(data, eventHandler) {
+        // 1:
+        var player = new Player();
+
+        // 2:
+        var video = new MediaItem('video', data.videoURL);
+        video.title = data.title;
+        video.subtitle = data.subtitle;
+        video.description = data.description;
+
+        // 3:
+        player.playlist = new Playlist();
+        player.playlist.push(video);
+
+        var overlayData = {
+            logo: this._resourceLoader.urlForResource("logo.png")
+        };
+        var overlay = this._resourceLoader
+            .getDocument("videoLogoOverlay.tvml", overlayData);
+        player.overlayDocument = overlay;
+
+        player.addEventListener("timeDidChange",
+            eventHandler.handlePlaybackUpdates,
+            {interval: 5});
+
+        video.resumeTime = data.resumeTime;
+
+        // 4:
+        player.play();
     }
 
-    switch (presentation) {
-      case 'modal':
-        navigationDocument.presentModal(doc);
-        break;
-      case 'push':
-        navigationDocument.pushDocument(doc);
-        break;
-      case 'menuBar':
-        this._presentMenuBarItem(doc, sender);
-        break;
+    _playChromaKeyVideo(data) {
+        presentChromaKeyVideo(data.videoURL, data.backgroundURL);
     }
 
-  }
+    _presentMenuBarItem(doc, menuItem) {
+        var feature = menuItem.parentNode.getFeature("MenuBarDocument");
+        if (feature) {
+            var currentDoc = feature.getDocument(menuItem);
 
-  _playVideo(data, eventHandler) {
-    // 1:
-    var player = new Player();
-
-    // 2:
-    var video = new MediaItem('video', data.videoURL);
-    video.title = data.title;
-    video.subtitle = data.subtitle;
-    video.description = data.description;
-
-    // 3:
-    player.playlist = new Playlist();
-    player.playlist.push(video);
-
-    var overlayData = {
-      logo: this._resourceLoader.urlForResource("logo.png")
-    };
-    var overlay = this._resourceLoader
-      .getDocument("videoLogoOverlay.tvml", overlayData);
-    player.overlayDocument = overlay;
-
-    player.addEventListener("timeDidChange",
-      eventHandler.handlePlaybackUpdates,
-      {interval: 5});
-
-    video.resumeTime = data.resumeTime;
-    
-    // 4:
-    player.play();
-  }
-  
-  _playChromaKeyVideo(data) {
-    // TODO: Provide implementation
-  }
-
-  _presentMenuBarItem(doc, menuItem) {
-    var feature = menuItem.parentNode.getFeature("MenuBarDocument");
-    if (feature) {
-      var currentDoc = feature.getDocument(menuItem);
-
-      if (!currentDoc) {
-        feature.setDocument(doc, menuItem);
-      }
-    }
-  }
-
-  _enchancedDataForTemplate(data, template) {
-    var enhancedData = Object.assign({}, data);
-
-    enhancedData.sharedImages = this._sharedImageResources();
-    enhancedData = this._resourceLoader.recursivelyConvertFieldsToURLs(enhancedData, "image");
-
-    if(template === 'video.tvml') {
-      enhancedData["images"] = this._convertURLValuesInObject(data["images"]);
+            if (!currentDoc) {
+                feature.setDocument(doc, menuItem);
+            }
+        }
     }
 
-    return enhancedData;
-  }
+    _enchancedDataForTemplate(data, template) {
+        var enhancedData = Object.assign({}, data);
 
-  _sharedImageResources() {
-    var sharedImageNames = {
-      heads: "heads.png",
-      face: "face.png",
-      rock: "rock.png",
-      background: "tv_background.png"
-    };
+        enhancedData.sharedImages = this._sharedImageResources();
+        enhancedData = this._resourceLoader.recursivelyConvertFieldsToURLs(enhancedData, "image");
 
-    return this._convertURLValuesInObject(sharedImageNames);
-  }
+        if (template === 'video.tvml') {
+            enhancedData["images"] = this._convertURLValuesInObject(data["images"]);
+        }
 
-  _convertURLValuesInObject(object) {
-    return this._resourceLoader.convertNamesToURLs(object);
-  }
+        return enhancedData;
+    }
+
+    _sharedImageResources() {
+        var sharedImageNames = {
+            heads: "heads.png",
+            face: "face.png",
+            rock: "rock.png",
+            background: "tv_background.png"
+        };
+
+        return this._convertURLValuesInObject(sharedImageNames);
+    }
+
+    _convertURLValuesInObject(object) {
+        return this._resourceLoader.convertNamesToURLs(object);
+    }
 
 }

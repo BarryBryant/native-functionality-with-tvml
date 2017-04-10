@@ -23,6 +23,14 @@
 import Foundation
 import JavaScriptCore
 
+@objc protocol CloudDataStoreExport: JSExport {
+
+  func getItem(_ key: String) -> Any?
+  func setItem(_ key: String, _ value: Any)
+
+  static func create() -> CloudDataStoreExport
+}
+
 @objc class CloudDataStore: NSObject {
   override init() {
     super.init()
@@ -40,6 +48,22 @@ import JavaScriptCore
       ubiquitousKeyValueStore.synchronize()
     }
   }
+}
+
+extension CloudDataStore: CloudDataStoreExport {
+
+    func getItem(_ key: String) -> Any? {
+        return NSUbiquitousKeyValueStore.default().object(forKey: key)
+    }
+
+    func setItem(_ key: String, _ value: Any) {
+        NSUbiquitousKeyValueStore.default().set(value, forKey: key)
+    }
+
+    static func create() -> CloudDataStoreExport {
+        return CloudDataStore()
+    }
+
 }
 
 

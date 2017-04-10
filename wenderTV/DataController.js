@@ -23,6 +23,7 @@
 class DataController {
   constructor(resourceLoader) {
     this._resourceLoader = resourceLoader;
+    this._cloudDataStore = CloudDataStore.create();
   }
 
   retrieveData(data, presentation) {
@@ -44,11 +45,15 @@ class DataController {
   }
 
   progressForVideoAtURL(url) {
-    return localStorage.getItem(url) || 0;
+      var exploded = url.split("/");
+      var key = exploded[exploded.length - 1];
+      return this._cloudDataStore.getItem(key);
   }
 
   saveProgressForVideoAtURL(url, progress) {
-    localStorage.setItem(url, progress);
+      var exploded = url.split("/");
+      var key = exploded[exploded.length - 1];
+      this._cloudDataStore.setItem(key, progress)
   }
 
   searchVideosForString(searchString) {
